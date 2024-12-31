@@ -19,6 +19,8 @@ var CLOUDFRONT_CORS_ENABLED = 'true';
 // Parameters of transformed images
 var S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION = '90';
 var S3_TRANSFORMED_IMAGE_CACHE_TTL = 'max-age=31622400';
+// Whether to auto-delete originals from S3.
+var S3_ORIGINALS_AUTO_DELETE = 'false';
 // Max image size in bytes. If generated images are stored on S3, bigger images are generated, stored on S3
 // and request is redirect to the generated image. Otherwise, an application error is sent.
 var MAX_IMAGE_SIZE = '4700000';
@@ -44,8 +46,12 @@ type LambdaEnv = {
   maxImageSize: string,
 }
 
+interface OptimizationStackProps extends StackProps {
+  S3_ORIGINALS_AUTO_DELETE?: string
+}
+
 export class ImageOptimizationStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props?: OptimizationStackProps) {
     super(scope, id, props);
 
     // Change stack parameters based on provided context
@@ -53,6 +59,7 @@ export class ImageOptimizationStack extends Stack {
     S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION = this.node.tryGetContext('S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION') || S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION;
     S3_TRANSFORMED_IMAGE_CACHE_TTL = this.node.tryGetContext('S3_TRANSFORMED_IMAGE_CACHE_TTL') || S3_TRANSFORMED_IMAGE_CACHE_TTL;
     S3_IMAGE_BUCKET_NAME = this.node.tryGetContext('S3_IMAGE_BUCKET_NAME') || S3_IMAGE_BUCKET_NAME;
+    S3_ORIGINALS_AUTO_DELETE = this.node.tryGetContext('S3_ORIGINALS_AUTO_DELETE') || S3_ORIGINALS_AUTO_DELETE;
     CLOUDFRONT_ORIGIN_SHIELD_REGION = this.node.tryGetContext('CLOUDFRONT_ORIGIN_SHIELD_REGION') || CLOUDFRONT_ORIGIN_SHIELD_REGION;
     CLOUDFRONT_CORS_ENABLED = this.node.tryGetContext('CLOUDFRONT_CORS_ENABLED') || CLOUDFRONT_CORS_ENABLED;
     LAMBDA_MEMORY = this.node.tryGetContext('LAMBDA_MEMORY') || LAMBDA_MEMORY;
@@ -102,10 +109,11 @@ export class ImageOptimizationStack extends Stack {
       });
     } else {
       originalImageBucket = new s3.Bucket(this, 's3-original-image-bucket', {
-        removalPolicy: RemovalPolicy.RETAIN,
+        removalPolicy: S3_ORIGINALS_AUTO_DELETE === 'true' ? RemovalPolicy.DESTROY : RemovalPolicy.RETAIN,
         blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         encryption: s3.BucketEncryption.S3_MANAGED,
         enforceSSL: true,
+        autoDeleteObjects: S3_ORIGINALS_AUTO_DELETE === 'true',
       });
       new CfnOutput(this, 'OriginalImagesS3Bucket', {
         description: 'S3 bucket where original images are stored',

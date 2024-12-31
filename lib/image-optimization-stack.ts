@@ -101,17 +101,11 @@ export class ImageOptimizationStack extends Stack {
         value: originalImageBucket.bucketName
       });
     } else {
-      originalImageBucket = new s3.Bucket(this, 's3-sample-original-image-bucket', {
-        removalPolicy: RemovalPolicy.DESTROY,
+      originalImageBucket = new s3.Bucket(this, 's3-original-image-bucket', {
+        removalPolicy: RemovalPolicy.RETAIN,
         blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         encryption: s3.BucketEncryption.S3_MANAGED,
         enforceSSL: true,
-        autoDeleteObjects: true,
-      });
-      new s3deploy.BucketDeployment(this, 'DeployWebsite', {
-        sources: [s3deploy.Source.asset('./image-sample')],
-        destinationBucket: originalImageBucket,
-        destinationKeyPrefix: 'images/rio/',
       });
       new CfnOutput(this, 'OriginalImagesS3Bucket', {
         description: 'S3 bucket where original images are stored',

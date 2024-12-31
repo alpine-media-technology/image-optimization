@@ -5,7 +5,9 @@ import { ImageOptimizationStack } from '../lib/image-optimization-stack';
 
 
 const app = new cdk.App();
-new ImageOptimizationStack(app, 'ImgTransformationStack', {
 
-});
+// This is the example stack that comes with the project.
+// new ImageOptimizationStack(app, 'ImgTransformationStack', {});
 
+new ImageOptimizationStack(app, 'ImgOptimizationStagingStack', {});
+new ImageOptimizationStack(app, 'ImgOptimizationProductionStack', {});
